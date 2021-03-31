@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace DominoesSolution
@@ -17,27 +18,28 @@ namespace DominoesSolution
             if (dominoes.Count() == 1)
                 return firstDom.Item1 == firstDom.Item2;
 
-            // Check if dominoes can form a chain    
+            // Check if dominoes can form a chain
             bool isChainable = ChainChecker(firstDom, dominoes);
 
             return isChainable;
         }
 
-        public static List<(int, int)> dominoeChain = new List<(int, int)>();
-
         public static bool ChainChecker((int, int) dom, IEnumerable<(int, int)> dominoes)
         {
             bool result = false;
+            // Make a new list
+            List<(int, int)> dominoeChain = new List<(int, int)>();
+            // Add the first dominoe to the list
             dominoeChain.Add(dom);
+            // Set the first dominoe in the list as current domine
             var currentDom = dominoeChain.FirstOrDefault();
 
-
-            // Compare current dominoe with next dominoe
-            var enumerator = dominoes.GetEnumerator();
-            while (enumerator.MoveNext())
+            foreach (var dominoe in dominoes)
             {
-                var nextDom = enumerator.Current;
+                // Skip dominoes already checked
+                if (dominoe == currentDom) continue;
 
+                var nextDom = dominoe;
                 // Compare current dominoe with next dominoe
                 result = Valid(currentDom, nextDom);
 
@@ -48,14 +50,21 @@ namespace DominoesSolution
                     currentDom = nextDom;
                 }
 
+                bool checkedAll = dominoeChain.Count() != dominoes.Count();
                 // If comparison is not valid and there's more dominoes to check
-                if (!result && dominoeChain.Count() != dominoes.Count())
+                if (!result && checkedAll)
                 {
                     // Search earlier dominoes for validity
-                    result = BacktrackChain(currentDom);
+                    var backtrackResult = BacktrackChain(nextDom, dominoeChain);
+                    result = backtrackResult.Item1;
 
                     // If result is still false, return false
-                    if (!result) return false;
+                    if (!result) return false; // isChainable = false
+
+                    // Use new dominoe chain if possible
+                    dominoeChain = backtrackResult.Item2;
+                    // Check the next dominoe
+                    currentDom = nextDom;
                 }
 
             }
@@ -63,22 +72,25 @@ namespace DominoesSolution
             return result;
         }
 
-        public static bool BacktrackChain((int, int) dominoe)
+        public static System.Tuple<bool, List<(int, int)>> BacktrackChain((int, int) dominoe, List<(int, int)> dominoeChain)
         {
-            bool success = false;
-
-            foreach (var d in dominoeChain)
+            for (int i = 1; i < dominoeChain.Count; i++)
             {
-                success = Valid(d, dominoe);
-
-                if (success)
+                var dominoe1 = dominoeChain[i - 1];
+                bool validFrontDominoe = Valid(dominoe1, dominoe);
+                if (validFrontDominoe) // Found one match
                 {
-                    dominoeChain.Add(dominoe);
-                    return true;
+                    var dominoe2 = dominoeChain[i];
+                    bool validBackDominoe = Valid(dominoe2, dominoe);
+                    if (validBackDominoe) // Found adjacent match 
+                    {
+                        dominoeChain.Insert(i, dominoe); // Insert dominoe into list at valid index
+                        return Tuple.Create(true, dominoeChain);
+                    }
                 }
             }
 
-            return success;
+            return Tuple.Create(false, dominoeChain);
         }
 
         public static bool Valid((int, int) dom1, (int, int) dom2)
