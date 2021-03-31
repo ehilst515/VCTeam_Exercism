@@ -34,8 +34,10 @@ namespace DominoesSolution
             // Set the first domino in the list as current domino
             var currentDom = dominoChain.FirstOrDefault();
 
-            foreach (var domino in dominoes)
+            for (int i = 1; i < dominoes.Count(); i++)
             {
+                var domino = dominoes.ElementAt(i - 1);
+
                 // Skip dominoes already checked
                 if (domino == currentDom) continue;
 
@@ -58,8 +60,12 @@ namespace DominoesSolution
                     var backtrackResult = BacktrackChain(nextDom, dominoChain);
                     result = backtrackResult.Item1;
 
-                    // If result is still false, return false
-                    if (!result) return false; // isChainable = false
+                    // If result is still false
+                    if (!result)
+                    {
+                        // Try the next domino in given dominoes as the first domino in a new chain
+                        ChainChecker(dominoes.ElementAt(i), dominoes); 
+                    }
 
                     // Use new domino chain if possible
                     dominoChain = backtrackResult.Item2;
